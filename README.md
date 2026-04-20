@@ -1,98 +1,91 @@
-# GPU Compute Platform - Database Schema
+# GPU Compute Platform
 
-This directory contains the database schema and models for the GPU Compute Platform.
+A REST API platform for managing GPU compute resources, including server inventory, GPU allocation, Kubernetes cluster management, API gateway routing, and alerting.
 
-## Structure
+## Tech Stack
+
+- **Runtime**: Node.js 18+ / TypeScript
+- **Framework**: Express
+- **Database**: PostgreSQL via Prisma ORM
+- **Cache**: Redis (ioredis)
+- **Message Queue**: NATS
+- **Auth**: JWT (jsonwebtoken) + RBAC
+- **Validation**: Zod
+- **Testing**: Vitest
+
+## Project Structure
 
 ```
 .
 ├── prisma/
-│   └── schema.prisma          # Prisma schema definition
+│   └── schema.prisma          # Database schema
 ├── src/
+│   ├── index.ts               # Express app entry point
+│   ├── auth/
+│   │   ├── jwt.ts             # JWT generation, verification, blacklisting
+│   │   ├── middleware.ts      # Auth middleware
+│   │   └── quota.ts           # User quota enforcement
+│   ├── cache/
+│   │   ├── client.ts          # Redis singleton client
+│   │   ├── helpers.ts         # Cache get/set/delete utilities
+│   │   └── types.ts           # Cache namespaces and TTL constants
 │   ├── db/
 │   │   └── prisma.ts          # Prisma client wrapper
+│   ├── middleware/
+│   │   └── audit.ts           # Request audit logging
 │   ├── models/
-│   │   └── index.ts           # TypeScript interfaces with Zod validation
-│   └── repositories/
-│       ├── index.ts           # Repository exports
-│       ├── server.repository.ts
-│       ├── gpu.repository.ts
-│       ├── allocation.repository.ts
-│       ├── alert.repository.ts
-│       ├── route-config.repository.ts
-│       └── cluster.repository.ts
-├── package.json
+│   │   └── index.ts           # TypeScript interfaces + Zod schemas
+│   ├── mq/
+│   │   └── index.ts           # NATS client and message publishing
+│   ├── repositories/
+│   │   ├── server.repository.ts
+│   │   ├── gpu.repository.ts
+│   │   ├── allocation.repository.ts
+│   │   ├── alert.repository.ts
+│   │   ├── route-config.repository.ts
+│   │   └── cluster.repository.ts
+│   ├── routes/
+│   │   ├── auth.ts            # POST /auth/login, /auth/logout
+│   │   ├── servers.ts         # Server CRUD
+│   │   ├── allocations.ts     # GPU allocation lifecycle
+│   │   ├── alerts.ts          # Alert management
+│   │   ├── clusters.ts        # K8s cluster management
+│   │   └── routes.ts          # API gateway route config
+│   ├── services/              # Business logic services
+│   └── tests/
+│       ├── jwt.test.ts
+│       └── cache-helpers.test.ts
+├── .eslintrc.json
 ├── tsconfig.json
 └── .env.example
 ```
 
-## Models
+## API Endpoints
 
-### Server
-- `id`: UUID (primary key)
-- `name`: String (1-64 chars)
-- `ip`: String (IPv4/IPv6)
-- `port`: Integer (1-65535)
-- `gpuCount`: Integer (>= 0)
-- `gpuModel`: String
-- `totalMemory`: BigInt
-- `status`: Enum (ONLINE, OFFLINE, MAINTENANCE, ERROR)
-- `createdAt`, `updatedAt`: DateTime
-
-### GPU
-- `id`: UUID (primary key)
-- `serverId`: UUID (foreign key)
-- `index`: Integer (0 to gpuCount-1)
-- `model`: String
-- `memory`: BigInt (> 0)
-- `usedMemory`: BigInt (0 to memory)
-- `status`: Enum (IDLE, BUSY, ERROR, RESERVED)
-- `allocatedTo`: UUID (nullable, references Allocation)
-
-### Allocation
-- `id`: UUID (primary key)
-- `userId`: UUID
-- `gpuId`: UUID (foreign key)
-- `serverId`: UUID (foreign key)
-- `requestedAt`: DateTime
-- `allocatedAt`: DateTime (nullable)
-- `expiresAt`: DateTime (nullable)
-- `status`: Enum (PENDING, ACTIVE, RELEASED, EXPIRED, FAILED)
-- `metadata`: JSON
-
-### Alert
-- `id`: UUID (primary key)
-- `ruleId`: UUID
-- `severity`: Enum (INFO, WARNING, ERROR, CRITICAL)
-- `source`: String
-- `message`: String
-- `triggeredAt`: DateTime
-- `acknowledgedAt`: DateTime (nullable)
-- `acknowledgedBy`: UUID (nullable)
-- `status`: Enum (FIRING, RESOLVED, ACKNOWLEDGED)
-
-### RouteConfig
-- `id`: UUID (primary key)
-- `name`: String (unique, 1-64 chars)
-- `path`: String (starts with /)
-- `method`: Enum (GET, POST, PUT, DELETE, PATCH, ANY)
-- `upstream`: JSON (UpstreamConfig)
-- `rateLimit`: JSON (nullable)
-- `authRequired`: Boolean
-- `timeout`: Integer (ms)
-- `retryPolicy`: JSON (nullable)
-- `version`: Integer
-
-### Cluster
-- `id`: UUID (primary key)
-- `name`: String (unique, 1-64 chars)
-- `apiServer`: String (URL)
-- `kubeconfig`: String
-- `version`: String (nullable)
-- `nodeCount`: Integer
-- `gpuNodeCount`: Integer
-- `status`: Enum (HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN)
-- `labels`: JSON
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/v1/auth/login` | — | Issue JWT token |
+| POST | `/api/v1/auth/logout` | ✓ | Blacklist token |
+| GET | `/api/v1/servers` | ✓ | List servers |
+| POST | `/api/v1/servers` | admin | Create server |
+| GET | `/api/v1/servers/:id` | ✓ | Get server |
+| PUT | `/api/v1/servers/:id` | admin | Update server |
+| DELETE | `/api/v1/servers/:id` | admin | Delete server |
+| GET | `/api/v1/allocations` | ✓ | List allocations |
+| POST | `/api/v1/allocations` | ✓ | Request GPU allocation |
+| DELETE | `/api/v1/allocations/:id` | ✓ | Release allocation |
+| GET | `/api/v1/alerts` | ✓ | List alerts |
+| POST | `/api/v1/alerts/:id/acknowledge` | ✓ | Acknowledge alert |
+| GET | `/api/v1/clusters` | ✓ | List clusters |
+| POST | `/api/v1/clusters` | admin | Register cluster |
+| GET | `/api/v1/clusters/:id` | ✓ | Get cluster |
+| PUT | `/api/v1/clusters/:id` | admin | Update cluster |
+| DELETE | `/api/v1/clusters/:id` | admin | Delete cluster |
+| GET | `/api/v1/routes` | ✓ | List route configs |
+| POST | `/api/v1/routes` | admin | Create route config |
+| PUT | `/api/v1/routes/:id` | admin | Update route config |
+| DELETE | `/api/v1/routes/:id` | admin | Delete route config |
+| GET | `/health` | — | Health check |
 
 ## Setup
 
@@ -101,66 +94,53 @@ This directory contains the database schema and models for the GPU Compute Platf
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and update the database URL:
+2. Copy and configure environment:
    ```bash
    cp .env.example .env
+   # Edit .env: DATABASE_URL, REDIS_URL, NATS_URL, JWT_SECRET
    ```
 
-3. Generate Prisma client:
+3. Generate Prisma client and run migrations:
    ```bash
-   npm run db:generate
+   npm run prisma:generate
+   npm run prisma:migrate
    ```
 
-4. Run migrations:
+4. Start development server:
    ```bash
-   npm run db:migrate
+   npm run dev
    ```
 
-5. Push schema to database:
+5. Build for production:
    ```bash
-   npm run db:push
+   npm run build
+   npm start
    ```
 
-## Validation
+## Testing & Linting
 
-All models include Zod schemas for runtime validation. Use the validation functions in `src/models/index.ts`:
-
-```typescript
-import { validateServer, validateGPU, validateCluster } from './src/models';
-
-// Validate input
-const server = validateServer(input);
-const gpu = validateGPU(input);
-const cluster = validateCluster(input);
-
-// Safe validation (returns result instead of throwing)
-const result = safeValidateServer(input);
-if (result.success) {
-  console.log(result.data);
-} else {
-  console.log(result.error);
-}
+```bash
+npm run test        # Run tests (vitest)
+npm run lint        # ESLint
+npm run format      # Prettier
 ```
 
-## Repository Usage
+## Models
 
-```typescript
-import { serverRepository, gpuRepository, allocationRepository } from './src/repositories';
+### Server
+`id`, `name`, `ip`, `port`, `gpuCount`, `gpuModel`, `totalMemory`, `status` (ONLINE/OFFLINE/MAINTENANCE/ERROR)
 
-// Create server
-const server = await serverRepository.create({
-  name: 'gpu-server-1',
-  ip: '192.168.1.100',
-  port: 8080,
-  gpuCount: 4,
-  gpuModel: 'NVIDIA-A100',
-  totalMemory: BigInt(64000000000),
-});
+### GPU
+`id`, `serverId`, `index`, `model`, `memory`, `usedMemory`, `status` (IDLE/BUSY/ERROR/RESERVED), `allocatedTo`
 
-// Find servers
-const servers = await serverRepository.findMany({ status: 'ONLINE' });
+### Allocation
+`id`, `userId`, `gpuId`, `serverId`, `requestedAt`, `allocatedAt`, `expiresAt`, `status` (PENDING/ACTIVE/RELEASED/EXPIRED/FAILED), `metadata`
 
-// Allocate GPU
-const gpu = await gpuRepository.findAvailable('NVIDIA-A100', BigInt(16000000000));
-await gpuRepository.updateStatus(gpu.id, 'BUSY', allocationId);
-```
+### Alert
+`id`, `ruleId`, `severity` (INFO/WARNING/ERROR/CRITICAL), `source`, `message`, `triggeredAt`, `status` (FIRING/RESOLVED/ACKNOWLEDGED)
+
+### RouteConfig
+`id`, `name`, `path`, `method` (GET/POST/PUT/DELETE/PATCH/ANY), `upstream`, `rateLimit`, `authRequired`, `timeout`, `retryPolicy`, `version`
+
+### Cluster
+`id`, `name`, `apiServer`, `kubeconfig`, `version`, `nodeCount`, `gpuNodeCount`, `status` (HEALTHY/DEGRADED/UNHEALTHY/UNKNOWN), `labels`

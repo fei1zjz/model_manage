@@ -29,8 +29,8 @@ export class GPURepository {
    * Create multiple GPUs for a server
    */
   async createMany(serverId: string, gpuModel: string, memory: bigint, count: number): Promise<GPU[]> {
-    const gpus = await prisma.gPU.createManyAndReturn(
-      Array.from({ length: count }, (_, i) => ({
+    const gpus = await prisma.gPU.createManyAndReturn({
+      data: Array.from({ length: count }, (_, i) => ({
         serverId,
         index: i,
         model: gpuModel,
@@ -38,8 +38,8 @@ export class GPURepository {
         usedMemory: BigInt(0),
         status: 'IDLE' as GPUStatus,
         allocatedTo: null,
-      }))
-    );
+      })),
+    });
 
     return gpus.map(this.mapToModel);
   }

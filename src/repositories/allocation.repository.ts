@@ -191,17 +191,8 @@ export class AllocationRepository {
   /**
    * Map Prisma model to domain model
    */
-  private mapToModel(allocation: {
-    id: string;
-    userId: string;
-    gpuId: string;
-    serverId: string;
-    requestedAt: Date;
-    allocatedAt: Date | null;
-    expiresAt: Date | null;
-    status: AllocationStatus;
-    metadata: Record<string, string> | null;
-  }): Allocation {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToModel(allocation: any): Allocation {
     return {
       id: allocation.id,
       userId: allocation.userId,

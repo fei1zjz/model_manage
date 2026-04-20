@@ -15,11 +15,11 @@ export class RouteConfigRepository {
         name: data.name,
         path: data.path,
         method: data.method ?? 'ANY',
-        upstream: data.upstream as Prisma.JsonObject,
-        rateLimit: data.rateLimit as Prisma.JsonObject | null,
+        upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
+        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
         authRequired: data.authRequired ?? false,
         timeout: data.timeout ?? 30000,
-        retryPolicy: data.retryPolicy as Prisma.JsonObject | null,
+        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
         version: data.version ?? 1,
       },
     });
@@ -85,11 +85,11 @@ export class RouteConfigRepository {
         name: data.name,
         path: data.path,
         method: data.method,
-        upstream: data.upstream as Prisma.JsonObject,
-        rateLimit: data.rateLimit as Prisma.JsonObject | null,
+        upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
+        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
         authRequired: data.authRequired,
         timeout: data.timeout,
-        retryPolicy: data.retryPolicy as Prisma.JsonObject | null,
+        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
 
@@ -114,11 +114,11 @@ export class RouteConfigRepository {
         name: data.name,
         path: data.path,
         method: data.method,
-        upstream: data.upstream as Prisma.JsonObject,
-        rateLimit: data.rateLimit as Prisma.JsonObject | null,
+        upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
+        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
         authRequired: data.authRequired,
         timeout: data.timeout,
-        retryPolicy: data.retryPolicy as Prisma.JsonObject | null,
+        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
         version: current.version + 1,
       },
     });
@@ -152,20 +152,8 @@ export class RouteConfigRepository {
   /**
    * Map Prisma model to domain model
    */
-  private mapToModel(route: {
-    id: string;
-    name: string;
-    path: string;
-    method: HttpMethod;
-    upstream: Record<string, unknown>;
-    rateLimit: Record<string, unknown> | null;
-    authRequired: boolean;
-    timeout: number;
-    retryPolicy: Record<string, unknown> | null;
-    createdAt: Date;
-    updatedAt: Date;
-    version: number;
-  }): RouteConfig {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToModel(route: any): RouteConfig {
     return {
       id: route.id,
       name: route.name,

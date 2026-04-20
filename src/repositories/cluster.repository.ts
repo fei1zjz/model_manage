@@ -88,7 +88,7 @@ export class ClusterRepository {
         nodeCount: data.nodeCount,
         gpuNodeCount: data.gpuNodeCount,
         status: data.status,
-        labels: data.labels,
+        labels: data.labels as Prisma.InputJsonValue ?? Prisma.JsonNull,
       },
     });
 
@@ -163,19 +163,8 @@ export class ClusterRepository {
   /**
    * Map Prisma model to domain model
    */
-  private mapToModel(cluster: {
-    id: string;
-    name: string;
-    apiServer: string;
-    kubeconfig: string;
-    version: string | null;
-    nodeCount: number;
-    gpuNodeCount: number;
-    status: ClusterStatus;
-    labels: Record<string, string> | null;
-    createdAt: Date;
-    updatedAt: Date;
-  }): Cluster {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private mapToModel(cluster: any): Cluster {
     return {
       id: cluster.id,
       name: cluster.name,

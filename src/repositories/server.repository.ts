@@ -40,7 +40,7 @@ export class ServerRepository {
    * Find server by name
    */
   async findByName(name: string): Promise<Server | null> {
-    const server = await prisma.server.findUnique({
+    const server = await prisma.server.findFirst({
       where: { name },
     });
 
