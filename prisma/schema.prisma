@@ -1,0 +1,204 @@
+// GPU Compute Platform - Database Schema
+// Prisma schema for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum ServerStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+  ERROR
+}
+
+enum GPUStatus {
+  IDLE
+  BUSY
+  ERROR
+  RESERVED
+}
+
+enum AllocationStatus {
+  PENDING
+  ACTIVE
+  RELEASED
+  EXPIRED
+  FAILED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AlertStatus {
+  FIRING
+  RESOLVED
+  ACKNOWLEDGED
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  DELETE
+  PATCH
+  ANY
+}
+
+enum LoadBalanceStrategy {
+  ROUND_ROBIN
+  LEAST_CONN
+  WEIGHTED
+  RANDOM
+}
+
+enum ClusterStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
+// ============================================
+// Models
+// ============================================
+
+// Server - GPU server resource
+model Server {
+  id          String       @id @default(uuid())
+  name        String
+  ip          String
+  port        Int
+  gpuCount    Int
+  gpuModel    String
+  totalMemory BigInt
+  status      ServerStatus @default(OFFLINE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  gpus        GPU[]
+  allocations Allocation[]
+
+  // Validation constraints
+  @@index([status])
+  @@index([gpuModel])
+  @@index([name])
+}
+
+// GPU - Graphics processor
+model GPU {
+  id          String    @id @default(uuid())
+  serverId    String
+  index       Int
+  model       String
+  memory      BigInt
+  usedMemory  BigInt    @default(0)
+  status      GPUStatus @default(IDLE)
+  allocatedTo String?   // References Allocation.id when allocated
+
+  // Relations
+  server      Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  allocations Allocation[]
+
+  // Validation constraints
+  @@unique([serverId, index]) // Each GPU has unique index per server
+  @@index([status])
+  @@index([serverId])
+}
+
+// Allocation - GPU resource allocation record
+model Allocation {
+  id          String           @id @default(uuid())
+  userId      String
+  gpuId       String
+  serverId    String
+  requestedAt DateTime         @default(now())
+  allocatedAt DateTime?
+  expiresAt   DateTime?
+  status      AllocationStatus @default(PENDING)
+  metadata    Json?            // Map<String, String>
+
+  // Relations
+  gpu         GPU    @relation(fields: [gpuId], references: [id], onDelete: SetNull)
+  server      Server @relation(fields: [serverId], references: [id], onDelete: SetNull)
+
+  // Validation constraints
+  @@index([userId])
+  @@index([status])
+  @@index([gpuId])
+  @@index([expiresAt])
+}
+
+// Alert - System alert record
+model Alert {
+  id              String        @id @default(uuid())
+  ruleId          String
+  severity        AlertSeverity
+  source          String
+  message         String
+  triggeredAt     DateTime      @default(now())
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+  status          AlertStatus   @default(FIRING)
+
+  // Validation constraints
+  @@index([ruleId])
+  @@index([status])
+  @@index([source])
+  @@index([triggeredAt])
+}
+
+// RouteConfig - API gateway route configuration
+model RouteConfig {
+  id           String   @id @default(uuid())
+  name         String
+  path         String
+  method       HttpMethod @default(ANY)
+  upstream     Json     // UpstreamConfig: targets, loadBalance, healthCheck
+  rateLimit    Json?    // RateLimitPolicy: requestsPerSecond, burst
+  authRequired Boolean  @default(false)
+  timeout      Int      @default(30000) // milliseconds
+  retryPolicy  Json?    // RetryPolicy: retries, backoff
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  version      Int      @default(1)
+
+  // Validation constraints
+  @@unique([name])
+  @@index([path])
+  @@index([method])
+}
+
+// Cluster - Kubernetes cluster
+model Cluster {
+  id           String        @id @default(uuid())
+  name         String
+  apiServer    String
+  kubeconfig   String        // Should be encrypted in production
+  version      String?
+  nodeCount    Int           @default(0)
+  gpuNodeCount Int           @default(0)
+  status       ClusterStatus @default(UNKNOWN)
+  labels       Json?         // Map<String, String>
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Validation constraints
+  @@unique([name])
+  @@index([status])
+  @@index([apiServer])
+}

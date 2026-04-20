@@ -9,8 +9,8 @@ This document outlines the implementation tasks for the GPU Compute Platform fea
 ## Phase 1: Core Infrastructure
 
 ### 1.1 Database Schema Setup
-- [ ] Design and create database schema for Server, GPU, Allocation, Alert, RouteConfig, Cluster models
-- [ ] Create migration scripts for PostgreSQL
+- [x] Design and create database schema for Server, GPU, Allocation, Alert, RouteConfig, Cluster models
+- [x] Create migration scripts for PostgreSQL
 - [ ] Set up Redis cache schema and connection pooling
 - [ ] Configure Time Series Database (Prometheus/InfluxDB) for metrics storage
 
