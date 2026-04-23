@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { checkDatabaseConnection } from './db/prisma';
 import { checkRedisConnection } from './cache';
 import serverRouter from './routes/servers';
@@ -12,6 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/health', async (_req, res) => {
   const [db, cache] = await Promise.all([
