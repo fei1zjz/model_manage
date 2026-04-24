@@ -15,6 +15,11 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Global BigInt serialization fix
+app.set('json replacer', (_key: string, value: unknown) =>
+  typeof value === 'bigint' ? value.toString() : value
+);
+
 app.get('/health', async (_req, res) => {
   const [db, cache] = await Promise.all([
     checkDatabaseConnection().then(() => true).catch(() => false),

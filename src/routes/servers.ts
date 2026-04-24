@@ -8,7 +8,9 @@ const router = Router();
 
 router.post('/', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
-    const server = await serverService.registerServer(req.body);
+    const body = { ...req.body };
+    if (body.totalMemory !== undefined) body.totalMemory = BigInt(body.totalMemory);
+    const server = await serverService.registerServer(body);
     res.status(201).json({ success: true, data: server });
   } catch (e: any) {
     res.status(400).json({ success: false, error: e.message });
