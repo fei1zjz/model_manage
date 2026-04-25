@@ -1,35 +1,71 @@
 // GPU Compute Platform - Domain Models
 // TypeScript interfaces with Zod validation
 
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================
 // Enums
 // ============================================
 
-export const ServerStatusEnum = z.enum(['ONLINE', 'OFFLINE', 'MAINTENANCE', 'ERROR']);
+export const ServerStatusEnum = z.enum([
+  "ONLINE",
+  "OFFLINE",
+  "MAINTENANCE",
+  "ERROR",
+]);
 export type ServerStatus = z.infer<typeof ServerStatusEnum>;
 
-export const GPUStatusEnum = z.enum(['IDLE', 'BUSY', 'ERROR', 'RESERVED']);
+export const GPUStatusEnum = z.enum(["IDLE", "BUSY", "ERROR", "RESERVED"]);
 export type GPUStatus = z.infer<typeof GPUStatusEnum>;
 
-export const AllocationStatusEnum = z.enum(['PENDING', 'ACTIVE', 'RELEASED', 'EXPIRED', 'FAILED']);
+export const AllocationStatusEnum = z.enum([
+  "PENDING",
+  "ACTIVE",
+  "RELEASED",
+  "EXPIRED",
+  "FAILED",
+]);
 export type AllocationStatus = z.infer<typeof AllocationStatusEnum>;
 
-export const AlertSeverityEnum = z.enum(['INFO', 'WARNING', 'ERROR', 'CRITICAL']);
+export const AlertSeverityEnum = z.enum([
+  "INFO",
+  "WARNING",
+  "ERROR",
+  "CRITICAL",
+]);
 export type AlertSeverity = z.infer<typeof AlertSeverityEnum>;
 
-export const AlertStatusEnum = z.enum(['FIRING', 'RESOLVED', 'ACKNOWLEDGED']);
+export const AlertStatusEnum = z.enum(["FIRING", "RESOLVED", "ACKNOWLEDGED"]);
 export type AlertStatus = z.infer<typeof AlertStatusEnum>;
 
-export const HttpMethodEnum = z.enum(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ANY']);
+export const HttpMethodEnum = z.enum([
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "PATCH",
+  "ANY",
+]);
 export type HttpMethod = z.infer<typeof HttpMethodEnum>;
 
-export const LoadBalanceStrategyEnum = z.enum(['ROUND_ROBIN', 'LEAST_CONN', 'WEIGHTED', 'RANDOM']);
+export const LoadBalanceStrategyEnum = z.enum([
+  "ROUND_ROBIN",
+  "LEAST_CONN",
+  "WEIGHTED",
+  "RANDOM",
+]);
 export type LoadBalanceStrategy = z.infer<typeof LoadBalanceStrategyEnum>;
 
-export const ClusterStatusEnum = z.enum(['HEALTHY', 'DEGRADED', 'UNHEALTHY', 'UNKNOWN']);
+export const ClusterStatusEnum = z.enum([
+  "HEALTHY",
+  "DEGRADED",
+  "UNHEALTHY",
+  "UNKNOWN",
+]);
 export type ClusterStatus = z.infer<typeof ClusterStatusEnum>;
+
+export const UserRoleEnum = z.enum(["admin", "user", "viewer"]);
+export type UserRole = z.infer<typeof UserRoleEnum>;
 
 // ============================================
 // Sub-schemas for complex types
@@ -51,7 +87,7 @@ export const HealthCheckConfigSchema = z.object({
 
 export const UpstreamConfigSchema = z.object({
   targets: z.array(UpstreamTargetSchema).min(1),
-  loadBalance: LoadBalanceStrategyEnum.default('ROUND_ROBIN'),
+  loadBalance: LoadBalanceStrategyEnum.default("ROUND_ROBIN"),
   healthCheck: HealthCheckConfigSchema.optional(),
 });
 
@@ -63,7 +99,7 @@ export const RateLimitPolicySchema = z.object({
 
 export const RetryPolicySchema = z.object({
   retries: z.number().int().min(0).max(5).default(3),
-  backoff: z.enum(['fixed', 'exponential', 'linear']).default('exponential'),
+  backoff: z.enum(["fixed", "exponential", "linear"]).default("exponential"),
   maxBackoff: z.number().int().positive().default(30000),
 });
 
@@ -79,8 +115,10 @@ export const ServerSchema = z.object({
   port: z.number().int().min(1).max(65535),
   gpuCount: z.number().int().nonnegative(),
   gpuModel: z.string().min(1),
-  totalMemory: z.bigint().positive(),
-  status: ServerStatusEnum.default('OFFLINE'),
+  totalMemory: z
+    .union([z.bigint(), z.string(), z.number()])
+    .transform((v) => BigInt(v)),
+  status: ServerStatusEnum.default("OFFLINE"),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -105,9 +143,13 @@ export const GPUSchema = z.object({
   serverId: z.string().uuid(),
   index: z.number().int().nonnegative(),
   model: z.string().min(1),
-  memory: z.bigint().positive(),
-  usedMemory: z.bigint().nonnegative(),
-  status: GPUStatusEnum.default('IDLE'),
+  memory: z
+    .union([z.bigint(), z.string(), z.number()])
+    .transform((v) => BigInt(v)),
+  usedMemory: z
+    .union([z.bigint(), z.string(), z.number()])
+    .transform((v) => BigInt(v)),
+  status: GPUStatusEnum.default("IDLE"),
   allocatedTo: z.string().uuid().nullable(),
 });
 
@@ -120,7 +162,10 @@ export const GPUCreateInputSchema = GPUSchema.omit({
   status: true,
   allocatedTo: true,
 }).extend({
-  usedMemory: z.bigint().optional(),
+  usedMemory: z
+    .union([z.bigint(), z.string(), z.number()])
+    .transform((v) => BigInt(v))
+    .optional(),
   status: GPUStatusEnum.optional(),
   allocatedTo: z.string().uuid().nullable().optional(),
 });
@@ -136,8 +181,8 @@ export const AllocationSchema = z.object({
   requestedAt: z.date(),
   allocatedAt: z.date().nullable(),
   expiresAt: z.date().nullable(),
-  status: AllocationStatusEnum.default('PENDING'),
-  metadata: z.record(z.string()).nullable(),
+  status: AllocationStatusEnum.default("PENDING"),
+  metadata: z.record(z.unknown()).nullable(),
 });
 
 export type Allocation = z.infer<typeof AllocationSchema>;
@@ -153,7 +198,7 @@ export const AllocationCreateInputSchema = AllocationSchema.omit({
   allocatedAt: z.date().optional(),
   expiresAt: z.date().optional(),
   status: AllocationStatusEnum.optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export type AllocationCreateInput = z.infer<typeof AllocationCreateInputSchema>;
@@ -168,7 +213,7 @@ export const AlertSchema = z.object({
   triggeredAt: z.date(),
   acknowledgedAt: z.date().nullable(),
   acknowledgedBy: z.string().uuid().nullable(),
-  status: AlertStatusEnum.default('FIRING'),
+  status: AlertStatusEnum.default("FIRING"),
 });
 
 export type Alert = z.infer<typeof AlertSchema>;
@@ -192,8 +237,8 @@ export type AlertCreateInput = z.infer<typeof AlertCreateInputSchema>;
 export const RouteConfigSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(64),
-  path: z.string().min(1).startsWith('/'),
-  method: HttpMethodEnum.default('ANY'),
+  path: z.string().min(1).startsWith("/"),
+  method: HttpMethodEnum.default("ANY"),
   upstream: UpstreamConfigSchema,
   rateLimit: RateLimitPolicySchema.nullable(),
   authRequired: z.boolean().default(false),
@@ -216,7 +261,9 @@ export const RouteConfigCreateInputSchema = RouteConfigSchema.omit({
   version: z.number().int().optional(),
 });
 
-export type RouteConfigCreateInput = z.infer<typeof RouteConfigCreateInputSchema>;
+export type RouteConfigCreateInput = z.infer<
+  typeof RouteConfigCreateInputSchema
+>;
 
 // Cluster Model
 export const ClusterSchema = z.object({
@@ -227,7 +274,7 @@ export const ClusterSchema = z.object({
   version: z.string().nullable(),
   nodeCount: z.number().int().nonnegative().default(0),
   gpuNodeCount: z.number().int().nonnegative().default(0),
-  status: ClusterStatusEnum.default('UNKNOWN'),
+  status: ClusterStatusEnum.default("UNKNOWN"),
   labels: z.record(z.string()).nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -245,7 +292,7 @@ export const ClusterCreateInputSchema = ClusterSchema.omit({
   gpuNodeCount: true,
   status: true,
 }).extend({
-  version: z.string().optional(),
+  version: z.string().nullable().optional(),
   nodeCount: z.number().int().nonnegative().optional(),
   gpuNodeCount: z.number().int().nonnegative().optional(),
   status: ClusterStatusEnum.optional(),
@@ -325,7 +372,9 @@ export function validateAllocation(data: unknown): Allocation {
   return AllocationSchema.parse(data);
 }
 
-export function validateAllocationCreateInput(data: unknown): AllocationCreateInput {
+export function validateAllocationCreateInput(
+  data: unknown,
+): AllocationCreateInput {
   return AllocationCreateInputSchema.parse(data);
 }
 
@@ -341,7 +390,9 @@ export function validateRouteConfig(data: unknown): RouteConfig {
   return RouteConfigSchema.parse(data);
 }
 
-export function validateRouteConfigCreateInput(data: unknown): RouteConfigCreateInput {
+export function validateRouteConfigCreateInput(
+  data: unknown,
+): RouteConfigCreateInput {
   return RouteConfigCreateInputSchema.parse(data);
 }
 
@@ -353,8 +404,82 @@ export function validateClusterCreateInput(data: unknown): ClusterCreateInput {
   return ClusterCreateInputSchema.parse(data);
 }
 
+// ============================================
+// User Model
+// ============================================
+
+export const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  username: z.string().min(1).max(64),
+  passwordHash: z.string(),
+  role: UserRoleEnum.default("user"),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+
+export const RegisterInputSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(1).max(64),
+  password: z.string().min(6).max(128),
+});
+
+export type RegisterInput = z.infer<typeof RegisterInputSchema>;
+
+export const LoginInputSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export type LoginInput = z.infer<typeof LoginInputSchema>;
+
+export const UpdateProfileInputSchema = z.object({
+  email: z.string().email().optional(),
+  username: z.string().min(1).max(64).optional(),
+});
+
+export type UpdateProfileInput = z.infer<typeof UpdateProfileInputSchema>;
+
+export const ChangePasswordInputSchema = z.object({
+  oldPassword: z.string().min(1),
+  newPassword: z.string().min(6).max(128),
+});
+
+export type ChangePasswordInput = z.infer<typeof ChangePasswordInputSchema>;
+
+export const UpdateUserRoleSchema = z.object({
+  role: UserRoleEnum,
+});
+
+export type UpdateUserRole = z.infer<typeof UpdateUserRoleSchema>;
+
+// Safe validation helpers
+export function safeValidateRegister(data: unknown) {
+  return RegisterInputSchema.safeParse(data);
+}
+
+export function safeValidateLogin(data: unknown) {
+  return LoginInputSchema.safeParse(data);
+}
+
+export function safeValidateUpdateProfile(data: unknown) {
+  return UpdateProfileInputSchema.safeParse(data);
+}
+
+export function safeValidateChangePassword(data: unknown) {
+  return ChangePasswordInputSchema.safeParse(data);
+}
+
+export function safeValidateUpdateUserRole(data: unknown) {
+  return UpdateUserRoleSchema.safeParse(data);
+}
+
 // Safe validation (returns result instead of throwing)
-export function safeValidateServer(data: unknown): { success: true; data: Server } | { success: false; error: z.ZodError } {
+export function safeValidateServer(
+  data: unknown,
+): { success: true; data: Server } | { success: false; error: z.ZodError } {
   const result = ServerSchema.safeParse(data);
   if (result.success) {
     return { success: true, data: result.data };
@@ -362,7 +487,9 @@ export function safeValidateServer(data: unknown): { success: true; data: Server
   return { success: false, error: result.error };
 }
 
-export function safeValidateGPU(data: unknown): { success: true; data: GPU } | { success: false; error: z.ZodError } {
+export function safeValidateGPU(
+  data: unknown,
+): { success: true; data: GPU } | { success: false; error: z.ZodError } {
   const result = GPUSchema.safeParse(data);
   if (result.success) {
     return { success: true, data: result.data };
@@ -370,7 +497,9 @@ export function safeValidateGPU(data: unknown): { success: true; data: GPU } | {
   return { success: false, error: result.error };
 }
 
-export function safeValidateCluster(data: unknown): { success: true; data: Cluster } | { success: false; error: z.ZodError } {
+export function safeValidateCluster(
+  data: unknown,
+): { success: true; data: Cluster } | { success: false; error: z.ZodError } {
   const result = ClusterSchema.safeParse(data);
   if (result.success) {
     return { success: true, data: result.data };

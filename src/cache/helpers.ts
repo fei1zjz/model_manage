@@ -1,14 +1,24 @@
 // GPU Compute Platform - Cache Helper Functions
 // Utility functions for cache operations
 
-import { redis } from './client';
-import { CacheNamespaces, CacheTTL, CacheSetOptions, CacheGetResult, CacheStats, CacheNamespace } from './types';
+import { redis } from "./client";
+import {
+  CacheNamespaces,
+  CacheTTL,
+  CacheSetOptions,
+  CacheGetResult,
+  CacheStats,
+  CacheNamespace,
+} from "./types";
 
 /**
  * Build a cache key with namespace
  */
-export function buildKey(namespace: CacheNamespace, ...parts: (string | number)[]): string {
-  return [namespace, ...parts.map(String)].join(':');
+export function buildKey(
+  namespace: CacheNamespace,
+  ...parts: (string | number)[]
+): string {
+  return [namespace, ...parts.map(String)].join(":");
 }
 
 /**
@@ -17,11 +27,11 @@ export function buildKey(namespace: CacheNamespace, ...parts: (string | number)[
 export async function cacheGet<T>(key: string): Promise<CacheGetResult<T>> {
   try {
     const value = await redis.get(key);
-    
+
     if (value === null) {
       return { found: false, value: null };
     }
-    
+
     return { found: true, value: JSON.parse(value) as T };
   } catch (error) {
     console.error(`[Cache] Get error for key ${key}:`, error);
@@ -35,36 +45,36 @@ export async function cacheGet<T>(key: string): Promise<CacheGetResult<T>> {
 export async function cacheSet<T>(
   key: string,
   value: T,
-  options: CacheSetOptions = {}
+  options: CacheSetOptions = {},
 ): Promise<boolean> {
   try {
     const serialized = JSON.stringify(value);
     const { ttl, nx, xx } = options;
-    
+
     if (ttl) {
       if (nx) {
-        const result = await redis.set(key, serialized, 'EX', ttl, 'NX');
-        return result === 'OK';
+        const result = await redis.set(key, serialized, "EX", ttl, "NX");
+        return result === "OK";
       }
       if (xx) {
-        const result = await redis.set(key, serialized, 'EX', ttl, 'XX');
-        return result === 'OK';
+        const result = await redis.set(key, serialized, "EX", ttl, "XX");
+        return result === "OK";
       }
-      const result = await redis.set(key, serialized, 'EX', ttl);
-      return result === 'OK';
+      const result = await redis.set(key, serialized, "EX", ttl);
+      return result === "OK";
     }
-    
+
     if (nx) {
-      const result = await redis.set(key, serialized, 'NX');
-      return result === 'OK';
+      const result = await redis.set(key, serialized, "NX");
+      return result === "OK";
     }
     if (xx) {
-      const result = await redis.set(key, serialized, 'XX');
-      return result === 'OK';
+      const result = await redis.set(key, serialized, "XX");
+      return result === "OK";
     }
-    
+
     const result = await redis.set(key, serialized);
-    return result === 'OK';
+    return result === "OK";
   } catch (error) {
     console.error(`[Cache] Set error for key ${key}:`, error);
     return false;
@@ -85,16 +95,22 @@ export async function cacheDelete(key: string): Promise<boolean> {
 }
 
 /**
- * Delete multiple keys matching a pattern
+ * Delete multiple keys matching a pattern (uses SCAN instead of KEYS)
  */
 export async function cacheDeletePattern(pattern: string): Promise<number> {
   try {
-    const keys = await redis.keys(pattern);
-    
+    const keys: string[] = [];
+    let cursor = "0";
+    do {
+      const result = await redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+      cursor = result[0];
+      keys.push(...result[1]);
+    } while (cursor !== "0");
+
     if (keys.length === 0) {
       return 0;
     }
-    
+
     const result = await redis.del(...keys);
     return result;
   } catch (error) {
@@ -156,7 +172,10 @@ export async function cacheIncr(key: string): Promise<number> {
 /**
  * Increment a counter by amount
  */
-export async function cacheIncrBy(key: string, amount: number): Promise<number> {
+export async function cacheIncrBy(
+  key: string,
+  amount: number,
+): Promise<number> {
   try {
     return await redis.incrby(key, amount);
   } catch (error) {
@@ -183,15 +202,15 @@ export async function cacheDecr(key: string): Promise<number> {
 export async function cacheSetCounter(
   key: string,
   value: number,
-  ttl?: number
+  ttl?: number,
 ): Promise<boolean> {
   try {
     if (ttl) {
-      const result = await redis.set(key, value, 'EX', ttl);
-      return result === 'OK';
+      const result = await redis.set(key, value, "EX", ttl);
+      return result === "OK";
     }
     const result = await redis.set(key, value);
-    return result === 'OK';
+    return result === "OK";
   } catch (error) {
     console.error(`[Cache] SetCounter error for key ${key}:`, error);
     return false;
@@ -214,16 +233,18 @@ export async function cacheGetCounter(key: string): Promise<number | null> {
 /**
  * Get multiple values at once
  */
-export async function cacheMGet<T>(keys: string[]): Promise<Map<string, T | null>> {
+export async function cacheMGet<T>(
+  keys: string[],
+): Promise<Map<string, T | null>> {
   const result = new Map<string, T | null>();
-  
+
   if (keys.length === 0) {
     return result;
   }
-  
+
   try {
     const values = await redis.mget(...keys);
-    
+
     keys.forEach((key, index) => {
       const value = values[index];
       if (value !== null) {
@@ -236,10 +257,10 @@ export async function cacheMGet<T>(keys: string[]): Promise<Map<string, T | null
         result.set(key, null);
       }
     });
-    
+
     return result;
   } catch (error) {
-    console.error('[Cache] MGet error:', error);
+    console.error("[Cache] MGet error:", error);
     return result;
   }
 }
@@ -248,28 +269,28 @@ export async function cacheMGet<T>(keys: string[]): Promise<Map<string, T | null
  * Set multiple values at once
  */
 export async function cacheMSet<T>(
-  entries: Array<{ key: string; value: T; ttl?: number }>
+  entries: Array<{ key: string; value: T; ttl?: number }>,
 ): Promise<boolean> {
   if (entries.length === 0) {
     return true;
   }
-  
+
   try {
     const pipeline = redis.pipeline();
-    
+
     for (const { key, value, ttl } of entries) {
       const serialized = JSON.stringify(value);
       if (ttl) {
-        pipeline.set(key, serialized, 'EX', ttl);
+        pipeline.set(key, serialized, "EX", ttl);
       } else {
         pipeline.set(key, serialized);
       }
     }
-    
+
     await pipeline.exec();
     return true;
   } catch (error) {
-    console.error('[Cache] MSet error:', error);
+    console.error("[Cache] MSet error:", error);
     return false;
   }
 }
@@ -279,27 +300,27 @@ export async function cacheMSet<T>(
  */
 export async function getCacheStats(): Promise<CacheStats> {
   try {
-    const info = await redis.info('memory');
-    const clientsInfo = await redis.info('clients');
-    const statsInfo = await redis.info('stats');
+    const info = await redis.info("memory");
+    const clientsInfo = await redis.info("clients");
+    const statsInfo = await redis.info("stats");
     const dbSize = await redis.dbsize();
-    
+
     // Parse memory info
     const usedMemoryMatch = info.match(/used_memory:(\d+)/);
     const usedMemory = usedMemoryMatch ? parseInt(usedMemoryMatch[1], 10) : 0;
-    
+
     // Parse clients info
     const connectedClientsMatch = clientsInfo.match(/connected_clients:(\d+)/);
-    const connectedClients = connectedClientsMatch 
-      ? parseInt(connectedClientsMatch[1], 10) 
+    const connectedClients = connectedClientsMatch
+      ? parseInt(connectedClientsMatch[1], 10)
       : 0;
-    
+
     // Parse stats
     const hitsMatch = statsInfo.match(/keyspace_hits:(\d+)/);
     const missesMatch = statsInfo.match(/keyspace_misses:(\d+)/);
     const hits = hitsMatch ? parseInt(hitsMatch[1], 10) : 0;
     const misses = missesMatch ? parseInt(missesMatch[1], 10) : 0;
-    
+
     return {
       connectedClients,
       usedMemory,
@@ -308,7 +329,7 @@ export async function getCacheStats(): Promise<CacheStats> {
       misses,
     };
   } catch (error) {
-    console.error('[Cache] Stats error:', error);
+    console.error("[Cache] Stats error:", error);
     return {
       connectedClients: 0,
       usedMemory: 0,

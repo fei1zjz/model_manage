@@ -1,9 +1,14 @@
 // GPU Compute Platform - Allocation Repository
 // Database operations for Allocation model
 
-import prisma from '../db/prisma';
-import { Allocation, AllocationCreateInput, AllocationFilter, AllocationStatus } from '../models';
-import { Prisma } from '@prisma/client';
+import prisma from "../db/prisma";
+import {
+  Allocation,
+  AllocationCreateInput,
+  AllocationFilter,
+  AllocationStatus,
+} from "../models";
+import { Prisma } from "@prisma/client";
 
 export class AllocationRepository {
   /**
@@ -17,8 +22,8 @@ export class AllocationRepository {
         serverId: data.serverId,
         allocatedAt: data.allocatedAt,
         expiresAt: data.expiresAt,
-        status: data.status ?? 'PENDING',
-        metadata: data.metadata ?? {},
+        status: data.status ?? "PENDING",
+        metadata: (data.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       },
     });
 
@@ -43,7 +48,7 @@ export class AllocationRepository {
     const allocation = await prisma.allocation.findFirst({
       where: {
         gpuId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
 
@@ -56,7 +61,7 @@ export class AllocationRepository {
   async findByUserId(userId: string): Promise<Allocation[]> {
     const allocations = await prisma.allocation.findMany({
       where: { userId },
-      orderBy: { requestedAt: 'desc' },
+      orderBy: { requestedAt: "desc" },
     });
 
     return allocations.map(this.mapToModel);
@@ -69,9 +74,9 @@ export class AllocationRepository {
     const allocations = await prisma.allocation.findMany({
       where: {
         userId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
-      orderBy: { allocatedAt: 'desc' },
+      orderBy: { allocatedAt: "desc" },
     });
 
     return allocations.map(this.mapToModel);
@@ -84,7 +89,7 @@ export class AllocationRepository {
     return prisma.allocation.count({
       where: {
         userId,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
     });
   }
@@ -113,7 +118,7 @@ export class AllocationRepository {
 
     const allocations = await prisma.allocation.findMany({
       where,
-      orderBy: { requestedAt: 'desc' },
+      orderBy: { requestedAt: "desc" },
     });
 
     return allocations.map(this.mapToModel);
@@ -126,7 +131,7 @@ export class AllocationRepository {
     const now = new Date();
     const allocations = await prisma.allocation.findMany({
       where: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
         expiresAt: {
           lt: now,
         },
@@ -139,14 +144,17 @@ export class AllocationRepository {
   /**
    * Update allocation
    */
-  async update(id: string, data: Partial<AllocationCreateInput>): Promise<Allocation> {
+  async update(
+    id: string,
+    data: Partial<AllocationCreateInput>,
+  ): Promise<Allocation> {
     const allocation = await prisma.allocation.update({
       where: { id },
       data: {
         allocatedAt: data.allocatedAt,
         expiresAt: data.expiresAt,
         status: data.status,
-        metadata: data.metadata,
+        metadata: data.metadata as Prisma.InputJsonValue | undefined,
       },
     });
 
@@ -156,7 +164,10 @@ export class AllocationRepository {
   /**
    * Update allocation status
    */
-  async updateStatus(id: string, status: AllocationStatus): Promise<Allocation> {
+  async updateStatus(
+    id: string,
+    status: AllocationStatus,
+  ): Promise<Allocation> {
     const allocation = await prisma.allocation.update({
       where: { id },
       data: { status },
@@ -180,7 +191,7 @@ export class AllocationRepository {
   async deleteExpired(before: Date): Promise<number> {
     const result = await prisma.allocation.deleteMany({
       where: {
-        status: { in: ['RELEASED', 'EXPIRED', 'FAILED'] },
+        status: { in: ["RELEASED", "EXPIRED", "FAILED"] },
         requestedAt: { lt: before },
       },
     });
@@ -191,8 +202,8 @@ export class AllocationRepository {
   /**
    * Map Prisma model to domain model
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapToModel(allocation: any): Allocation {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private mapToModel(allocation: Prisma.AllocationGetPayload<{}>): Allocation {
     return {
       id: allocation.id,
       userId: allocation.userId,
@@ -202,7 +213,7 @@ export class AllocationRepository {
       allocatedAt: allocation.allocatedAt,
       expiresAt: allocation.expiresAt,
       status: allocation.status,
-      metadata: allocation.metadata,
+      metadata: allocation.metadata as Record<string, unknown> | null,
     };
   }
 }

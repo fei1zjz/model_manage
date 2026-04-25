@@ -1,9 +1,14 @@
 // GPU Compute Platform - Cluster Repository
 // Database operations for Cluster model
 
-import prisma from '../db/prisma';
-import { Cluster, ClusterCreateInput, ClusterFilter, ClusterStatus } from '../models';
-import { Prisma } from '@prisma/client';
+import prisma from "../db/prisma";
+import {
+  Cluster,
+  ClusterCreateInput,
+  ClusterFilter,
+  ClusterStatus,
+} from "../models";
+import { Prisma } from "@prisma/client";
 
 export class ClusterRepository {
   /**
@@ -18,8 +23,8 @@ export class ClusterRepository {
         version: data.version,
         nodeCount: data.nodeCount ?? 0,
         gpuNodeCount: data.gpuNodeCount ?? 0,
-        status: data.status ?? 'UNKNOWN',
-        labels: data.labels ?? {},
+        status: data.status ?? "UNKNOWN",
+        labels: data.labels ?? Prisma.JsonNull,
       },
     });
 
@@ -59,7 +64,7 @@ export class ClusterRepository {
     }
 
     if (filter?.name) {
-      where.name = { contains: filter.name, mode: 'insensitive' };
+      where.name = { contains: filter.name, mode: "insensitive" };
     }
 
     if (filter?.labels) {
@@ -68,7 +73,7 @@ export class ClusterRepository {
 
     const clusters = await prisma.cluster.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return clusters.map(this.mapToModel);
@@ -77,7 +82,10 @@ export class ClusterRepository {
   /**
    * Update cluster
    */
-  async update(id: string, data: Partial<ClusterCreateInput>): Promise<Cluster> {
+  async update(
+    id: string,
+    data: Partial<ClusterCreateInput>,
+  ): Promise<Cluster> {
     const cluster = await prisma.cluster.update({
       where: { id },
       data: {
@@ -88,7 +96,7 @@ export class ClusterRepository {
         nodeCount: data.nodeCount,
         gpuNodeCount: data.gpuNodeCount,
         status: data.status,
-        labels: data.labels as Prisma.InputJsonValue ?? Prisma.JsonNull,
+        labels: (data.labels as Prisma.InputJsonValue) ?? Prisma.JsonNull,
       },
     });
 
@@ -110,7 +118,11 @@ export class ClusterRepository {
   /**
    * Update cluster node counts
    */
-  async updateNodeCounts(id: string, nodeCount: number, gpuNodeCount: number): Promise<Cluster> {
+  async updateNodeCounts(
+    id: string,
+    nodeCount: number,
+    gpuNodeCount: number,
+  ): Promise<Cluster> {
     const cluster = await prisma.cluster.update({
       where: { id },
       data: { nodeCount, gpuNodeCount },
@@ -131,7 +143,7 @@ export class ClusterRepository {
   /**
    * Check if cluster has active workloads (placeholder - would need workload table)
    */
-  async hasActiveWorkloads(clusterId: string): Promise<boolean> {
+  async hasActiveWorkloads(_clusterId: string): Promise<boolean> {
     // This would check for active workloads in a real implementation
     // For now, return false as we don't have a workload table yet
     return false;
@@ -142,7 +154,7 @@ export class ClusterRepository {
    */
   async countByStatus(): Promise<Record<ClusterStatus, number>> {
     const clusters = await prisma.cluster.groupBy({
-      by: ['status'],
+      by: ["status"],
       _count: true,
     });
 
@@ -163,8 +175,8 @@ export class ClusterRepository {
   /**
    * Map Prisma model to domain model
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapToModel(cluster: any): Cluster {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private mapToModel(cluster: Prisma.ClusterGetPayload<{}>): Cluster {
     return {
       id: cluster.id,
       name: cluster.name,
@@ -174,7 +186,7 @@ export class ClusterRepository {
       nodeCount: cluster.nodeCount,
       gpuNodeCount: cluster.gpuNodeCount,
       status: cluster.status,
-      labels: cluster.labels,
+      labels: cluster.labels as Record<string, string> | null,
       createdAt: cluster.createdAt,
       updatedAt: cluster.updatedAt,
     };

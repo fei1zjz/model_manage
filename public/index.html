@@ -1,183 +1,444 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GPU 计算平台</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <!-- Login Page -->
-  <div id="login-page" class="page">
-    <div class="login-box">
-      <h1>GPU 计算平台</h1>
-      <form id="login-form">
-        <div class="form-group">
-          <label>用户 ID (UUID)</label>
-          <input type="text" id="login-userId" placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000" required />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GPU 计算平台</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Login Page -->
+    <div id="login-page" class="page">
+      <div class="login-box">
+        <h1>GPU 计算平台</h1>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth="login">登录</button>
+          <button class="auth-tab" data-auth="register">注册</button>
         </div>
-        <div class="form-group">
-          <label>邮箱</label>
-          <input type="email" id="login-email" placeholder="user@example.com" required />
-        </div>
-        <div class="form-group">
-          <label>角色</label>
-          <select id="login-role">
-            <option value="admin">Admin</option>
-            <option value="user" selected>User</option>
-            <option value="viewer">Viewer</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary btn-full">登录</button>
-        <p id="login-error" class="error-msg"></p>
-      </form>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-group">
+            <label>邮箱</label>
+            <input
+              type="email"
+              id="login-email"
+              placeholder="user@example.com"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input
+              type="password"
+              id="login-password"
+              placeholder="输入密码"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">登录</button>
+          <p id="login-error" class="error-msg"></p>
+        </form>
+
+        <!-- Register Form -->
+        <form id="register-form" class="hidden">
+          <div class="form-group">
+            <label>邮箱</label>
+            <input
+              type="email"
+              id="reg-email"
+              placeholder="user@example.com"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>用户名</label>
+            <input
+              type="text"
+              id="reg-username"
+              placeholder="用户名"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input
+              type="password"
+              id="reg-password"
+              placeholder="至少 6 位"
+              minlength="6"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>确认密码</label>
+            <input
+              type="password"
+              id="reg-confirm"
+              placeholder="再次输入密码"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">注册</button>
+          <p id="register-error" class="error-msg"></p>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <!-- Main App -->
-  <div id="app" class="hidden">
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <span class="logo">⚡ GPU Platform</span>
-        <span id="user-info" class="user-badge"></span>
-      </div>
-      <ul class="nav-links">
-        <li><a href="#" data-page="dashboard" class="nav-link active">📊 概览</a></li>
-        <li><a href="#" data-page="servers" class="nav-link">🖥️ 服务器</a></li>
-        <li><a href="#" data-page="allocations" class="nav-link">🎮 GPU 分配</a></li>
-        <li><a href="#" data-page="alerts" class="nav-link">🔔 告警</a></li>
-        <li><a href="#" data-page="clusters" class="nav-link">☸️ 集群</a></li>
-      </ul>
-      <button id="logout-btn" class="btn btn-outline btn-full">退出登录</button>
-    </nav>
-
-    <main class="content">
-      <!-- Dashboard -->
-      <div id="page-dashboard" class="tab-page">
-        <h2>系统概览</h2>
-        <div class="stats-grid" id="dashboard-stats">
-          <div class="stat-card"><div class="stat-value" id="stat-servers">-</div><div class="stat-label">服务器</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-allocations">-</div><div class="stat-label">活跃分配</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-alerts">-</div><div class="stat-label">告警</div></div>
-          <div class="stat-card"><div class="stat-value" id="stat-clusters">-</div><div class="stat-label">集群</div></div>
+    <!-- Main App -->
+    <div id="app" class="hidden">
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <span class="logo">⚡ GPU Platform</span>
+          <span id="user-info" class="user-badge"></span>
         </div>
-        <div id="health-status" class="health-bar"></div>
-      </div>
+        <ul class="nav-links">
+          <li>
+            <a href="#" data-page="dashboard" class="nav-link active"
+              >📊 概览</a
+            >
+          </li>
+          <li>
+            <a href="#" data-page="servers" class="nav-link">🖥️ 服务器</a>
+          </li>
+          <li>
+            <a href="#" data-page="allocations" class="nav-link">🎮 GPU 分配</a>
+          </li>
+          <li><a href="#" data-page="alerts" class="nav-link">🔔 告警</a></li>
+          <li><a href="#" data-page="clusters" class="nav-link">☸️ 集群</a></li>
+          <li><a href="#" data-page="account" class="nav-link">👤 账号</a></li>
+        </ul>
+        <button id="logout-btn" class="btn btn-outline btn-full">
+          退出登录
+        </button>
+      </nav>
 
-      <!-- Servers -->
-      <div id="page-servers" class="tab-page hidden">
-        <div class="page-header">
-          <h2>服务器管理</h2>
-          <button class="btn btn-primary" id="add-server-btn">+ 注册服务器</button>
+      <main class="content">
+        <!-- Dashboard -->
+        <div id="page-dashboard" class="tab-page">
+          <h2>系统概览</h2>
+          <div class="stats-grid" id="dashboard-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="stat-servers">-</div>
+              <div class="stat-label">服务器</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-allocations">-</div>
+              <div class="stat-label">活跃分配</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-alerts">-</div>
+              <div class="stat-label">告警</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="stat-clusters">-</div>
+              <div class="stat-label">集群</div>
+            </div>
+          </div>
+          <div id="health-status" class="health-bar"></div>
         </div>
-        <div id="server-list" class="table-container"></div>
 
-        <div id="server-modal" class="modal hidden">
-          <div class="modal-box">
-            <h3>注册服务器</h3>
-            <form id="server-form">
-              <div class="form-row">
-                <div class="form-group"><label>名称</label><input type="text" name="name" required /></div>
-                <div class="form-group"><label>IP 地址</label><input type="text" name="ip" required /></div>
-              </div>
-              <div class="form-row">
-                <div class="form-group"><label>端口</label><input type="number" name="port" value="22" required /></div>
-                <div class="form-group"><label>GPU 数量</label><input type="number" name="gpuCount" value="8" required /></div>
-              </div>
-              <div class="form-row">
-                <div class="form-group"><label>GPU 型号</label><input type="text" name="gpuModel" placeholder="A100" required /></div>
-                <div class="form-group"><label>总显存 (MB)</label><input type="number" name="totalMemory" value="327680" required /></div>
-              </div>
-              <div class="modal-actions">
-                <button type="button" class="btn btn-outline" id="cancel-server">取消</button>
-                <button type="submit" class="btn btn-primary">注册</button>
-              </div>
-            </form>
+        <!-- Servers -->
+        <div id="page-servers" class="tab-page hidden">
+          <div class="page-header">
+            <h2>服务器管理</h2>
+            <button class="btn btn-primary" id="add-server-btn">
+              + 注册服务器
+            </button>
+          </div>
+          <div id="server-list" class="table-container"></div>
+
+          <div id="server-modal" class="modal hidden">
+            <div class="modal-box">
+              <h3>注册服务器</h3>
+              <form id="server-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>名称</label
+                    ><input type="text" name="name" required />
+                  </div>
+                  <div class="form-group">
+                    <label>IP 地址</label
+                    ><input type="text" name="ip" required />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>端口</label
+                    ><input type="number" name="port" value="22" required />
+                  </div>
+                  <div class="form-group">
+                    <label>GPU 数量</label
+                    ><input type="number" name="gpuCount" value="8" required />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>GPU 型号</label
+                    ><input
+                      type="text"
+                      name="gpuModel"
+                      placeholder="A100"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>总显存 (MB)</label
+                    ><input
+                      type="number"
+                      name="totalMemory"
+                      value="327680"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    id="cancel-server"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" class="btn btn-primary">注册</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Allocations -->
-      <div id="page-allocations" class="tab-page hidden">
-        <div class="page-header">
-          <h2>GPU 分配</h2>
-          <button class="btn btn-primary" id="alloc-btn">+ 申请 GPU</button>
-        </div>
-        <div id="alloc-list" class="table-container"></div>
+        <!-- Allocations -->
+        <div id="page-allocations" class="tab-page hidden">
+          <div class="page-header">
+            <h2>GPU 分配</h2>
+            <button class="btn btn-primary" id="alloc-btn">+ 申请 GPU</button>
+          </div>
+          <div id="alloc-list" class="table-container"></div>
 
-        <div id="alloc-modal" class="modal hidden">
-          <div class="modal-box">
-            <h3>申请 GPU 资源</h3>
-            <form id="alloc-form">
-              <div class="form-group"><label>GPU 型号</label><input type="text" name="gpuModel" placeholder="A100" required /></div>
-              <div class="form-group"><label>所需显存 (MB)</label><input type="number" name="memoryRequired" value="40960" required /></div>
-              <div class="form-group"><label>使用时长 (秒)</label><input type="number" name="durationSeconds" value="3600" required /></div>
-              <div class="modal-actions">
-                <button type="button" class="btn btn-outline" id="cancel-alloc">取消</button>
-                <button type="submit" class="btn btn-primary">申请</button>
-              </div>
-            </form>
+          <div id="alloc-modal" class="modal hidden">
+            <div class="modal-box">
+              <h3>申请 GPU 资源</h3>
+              <form id="alloc-form">
+                <div class="form-group">
+                  <label>GPU 型号</label
+                  ><input
+                    type="text"
+                    name="gpuModel"
+                    placeholder="A100"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label>所需显存 (MB)</label
+                  ><input
+                    type="number"
+                    name="memoryRequired"
+                    value="40960"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label>使用时长 (秒)</label
+                  ><input
+                    type="number"
+                    name="durationSeconds"
+                    value="3600"
+                    required
+                  />
+                </div>
+                <div class="modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    id="cancel-alloc"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" class="btn btn-primary">申请</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Alerts -->
-      <div id="page-alerts" class="tab-page hidden">
-        <div class="page-header">
-          <h2>告警管理</h2>
-          <div class="filter-bar">
-            <select id="alert-status-filter">
-              <option value="">全部状态</option>
-              <option value="FIRING">FIRING</option>
-              <option value="ACKNOWLEDGED">ACKNOWLEDGED</option>
-              <option value="RESOLVED">RESOLVED</option>
-            </select>
-            <select id="alert-severity-filter">
-              <option value="">全部级别</option>
-              <option value="CRITICAL">CRITICAL</option>
-              <option value="ERROR">ERROR</option>
-              <option value="WARNING">WARNING</option>
-              <option value="INFO">INFO</option>
-            </select>
-            <button class="btn btn-outline" id="refresh-alerts">刷新</button>
+        <!-- Alerts -->
+        <div id="page-alerts" class="tab-page hidden">
+          <div class="page-header">
+            <h2>告警管理</h2>
+            <div class="filter-bar">
+              <select id="alert-status-filter">
+                <option value="">全部状态</option>
+                <option value="FIRING">FIRING</option>
+                <option value="ACKNOWLEDGED">ACKNOWLEDGED</option>
+                <option value="RESOLVED">RESOLVED</option>
+              </select>
+              <select id="alert-severity-filter">
+                <option value="">全部级别</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="ERROR">ERROR</option>
+                <option value="WARNING">WARNING</option>
+                <option value="INFO">INFO</option>
+              </select>
+              <button class="btn btn-outline" id="refresh-alerts">刷新</button>
+            </div>
+          </div>
+          <div id="alert-list" class="table-container"></div>
+        </div>
+
+        <!-- Clusters -->
+        <div id="page-clusters" class="tab-page hidden">
+          <div class="page-header">
+            <h2>集群管理</h2>
+            <button class="btn btn-primary" id="add-cluster-btn">
+              + 注册集群
+            </button>
+          </div>
+          <div id="cluster-list" class="table-container"></div>
+
+          <div id="cluster-modal" class="modal hidden">
+            <div class="modal-box">
+              <h3>注册集群</h3>
+              <form id="cluster-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>集群名称</label
+                    ><input type="text" name="name" required />
+                  </div>
+                  <div class="form-group">
+                    <label>API Server URL</label
+                    ><input
+                      type="text"
+                      name="apiServer"
+                      placeholder="https://k8s.example.com:6443"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>节点数</label
+                    ><input type="number" name="nodeCount" value="3" />
+                  </div>
+                  <div class="form-group">
+                    <label>GPU 节点数</label
+                    ><input type="number" name="gpuNodeCount" value="1" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Kubeconfig</label
+                  ><textarea
+                    name="kubeconfig"
+                    rows="4"
+                    placeholder="粘贴 kubeconfig 内容..."
+                    required
+                  ></textarea>
+                </div>
+                <div class="modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    id="cancel-cluster"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" class="btn btn-primary">注册</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-        <div id="alert-list" class="table-container"></div>
-      </div>
 
-      <!-- Clusters -->
-      <div id="page-clusters" class="tab-page hidden">
-        <div class="page-header">
-          <h2>集群管理</h2>
-          <button class="btn btn-primary" id="add-cluster-btn">+ 注册集群</button>
-        </div>
-        <div id="cluster-list" class="table-container"></div>
+        <!-- Account Page -->
+        <div id="page-account" class="tab-page hidden">
+          <h2>账号管理</h2>
+          <div class="account-section">
+            <div class="account-card">
+              <h3>个人信息</h3>
+              <div id="profile-display">
+                <div class="profile-row">
+                  <span class="profile-label">邮箱</span
+                  ><span id="profile-email" class="profile-value">-</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-label">用户名</span
+                  ><span id="profile-username" class="profile-value">-</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-label">角色</span
+                  ><span id="profile-role" class="profile-value">-</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-label">注册时间</span
+                  ><span id="profile-created" class="profile-value">-</span>
+                </div>
+              </div>
+              <button
+                class="btn btn-outline"
+                id="edit-profile-btn"
+                style="margin-top: 16px"
+              >
+                编辑资料
+              </button>
+            </div>
 
-        <div id="cluster-modal" class="modal hidden">
-          <div class="modal-box">
-            <h3>注册集群</h3>
-            <form id="cluster-form">
-              <div class="form-row">
-                <div class="form-group"><label>集群名称</label><input type="text" name="name" required /></div>
-                <div class="form-group"><label>API Server URL</label><input type="text" name="apiServer" placeholder="https://k8s.example.com:6443" required /></div>
-              </div>
-              <div class="form-row">
-                <div class="form-group"><label>节点数</label><input type="number" name="nodeCount" value="3" /></div>
-                <div class="form-group"><label>GPU 节点数</label><input type="number" name="gpuNodeCount" value="1" /></div>
-              </div>
-              <div class="form-group"><label>Kubeconfig</label><textarea name="kubeconfig" rows="4" placeholder="粘贴 kubeconfig 内容..." required></textarea></div>
-              <div class="modal-actions">
-                <button type="button" class="btn btn-outline" id="cancel-cluster">取消</button>
-                <button type="submit" class="btn btn-primary">注册</button>
-              </div>
-            </form>
+            <div class="account-card">
+              <h3>修改密码</h3>
+              <form id="password-form">
+                <div class="form-group">
+                  <label>当前密码</label
+                  ><input type="password" name="oldPassword" required />
+                </div>
+                <div class="form-group">
+                  <label>新密码</label
+                  ><input
+                    type="password"
+                    name="newPassword"
+                    minlength="6"
+                    required
+                  />
+                </div>
+                <button type="submit" class="btn btn-primary">修改密码</button>
+                <p id="password-error" class="error-msg"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Edit Profile Modal -->
+          <div id="profile-modal" class="modal hidden">
+            <div class="modal-box">
+              <h3>编辑资料</h3>
+              <form id="profile-form">
+                <div class="form-group">
+                  <label>邮箱</label
+                  ><input type="email" name="email" id="edit-email" required />
+                </div>
+                <div class="form-group">
+                  <label>用户名</label
+                  ><input
+                    type="text"
+                    name="username"
+                    id="edit-username"
+                    required
+                  />
+                </div>
+                <div class="modal-actions">
+                  <button
+                    type="button"
+                    class="btn btn-outline"
+                    id="cancel-profile"
+                  >
+                    取消
+                  </button>
+                  <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
 
-  <div id="toast" class="toast hidden"></div>
-  <script src="app.js"></script>
-</body>
+    <div id="toast" class="toast hidden"></div>
+    <script src="app.js"></script>
+  </body>
 </html>

@@ -1,9 +1,14 @@
 // GPU Compute Platform - RouteConfig Repository
 // Database operations for RouteConfig model
 
-import prisma from '../db/prisma';
-import { RouteConfig, RouteConfigCreateInput, RouteFilter, HttpMethod } from '../models';
-import { Prisma } from '@prisma/client';
+import prisma from "../db/prisma";
+import {
+  RouteConfig,
+  RouteConfigCreateInput,
+  RouteFilter,
+  HttpMethod,
+} from "../models";
+import { Prisma } from "@prisma/client";
 
 export class RouteConfigRepository {
   /**
@@ -14,12 +19,16 @@ export class RouteConfigRepository {
       data: {
         name: data.name,
         path: data.path,
-        method: data.method ?? 'ANY',
+        method: data.method ?? "ANY",
         upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
-        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
+        rateLimit: data.rateLimit
+          ? (data.rateLimit as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         authRequired: data.authRequired ?? false,
         timeout: data.timeout ?? 30000,
-        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
+        retryPolicy: data.retryPolicy
+          ? (data.retryPolicy as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         version: data.version ?? 1,
       },
     });
@@ -56,11 +65,11 @@ export class RouteConfigRepository {
     const where: Prisma.RouteConfigWhereInput = {};
 
     if (filter?.name) {
-      where.name = { contains: filter.name, mode: 'insensitive' };
+      where.name = { contains: filter.name, mode: "insensitive" };
     }
 
     if (filter?.path) {
-      where.path = { contains: filter.path, mode: 'insensitive' };
+      where.path = { contains: filter.path, mode: "insensitive" };
     }
 
     if (filter?.method) {
@@ -69,7 +78,7 @@ export class RouteConfigRepository {
 
     const routes = await prisma.routeConfig.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return routes.map(this.mapToModel);
@@ -78,7 +87,10 @@ export class RouteConfigRepository {
   /**
    * Update route
    */
-  async update(id: string, data: Partial<RouteConfigCreateInput>): Promise<RouteConfig> {
+  async update(
+    id: string,
+    data: Partial<RouteConfigCreateInput>,
+  ): Promise<RouteConfig> {
     const route = await prisma.routeConfig.update({
       where: { id },
       data: {
@@ -86,10 +98,14 @@ export class RouteConfigRepository {
         path: data.path,
         method: data.method,
         upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
-        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
+        rateLimit: data.rateLimit
+          ? (data.rateLimit as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         authRequired: data.authRequired,
         timeout: data.timeout,
-        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
+        retryPolicy: data.retryPolicy
+          ? (data.retryPolicy as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       },
     });
 
@@ -99,13 +115,16 @@ export class RouteConfigRepository {
   /**
    * Update route with version increment
    */
-  async updateWithVersion(id: string, data: Partial<RouteConfigCreateInput>): Promise<RouteConfig> {
+  async updateWithVersion(
+    id: string,
+    data: Partial<RouteConfigCreateInput>,
+  ): Promise<RouteConfig> {
     const current = await prisma.routeConfig.findUnique({
       where: { id },
     });
 
     if (!current) {
-      throw new Error('Route not found');
+      throw new Error("Route not found");
     }
 
     const route = await prisma.routeConfig.update({
@@ -115,10 +134,14 @@ export class RouteConfigRepository {
         path: data.path,
         method: data.method,
         upstream: (data.upstream ?? {}) as Prisma.InputJsonValue,
-        rateLimit: data.rateLimit ? (data.rateLimit as Prisma.InputJsonValue) : Prisma.JsonNull,
+        rateLimit: data.rateLimit
+          ? (data.rateLimit as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         authRequired: data.authRequired,
         timeout: data.timeout,
-        retryPolicy: data.retryPolicy ? (data.retryPolicy as Prisma.InputJsonValue) : Prisma.JsonNull,
+        retryPolicy: data.retryPolicy
+          ? (data.retryPolicy as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         version: current.version + 1,
       },
     });
@@ -138,7 +161,10 @@ export class RouteConfigRepository {
   /**
    * Find route by path and method
    */
-  async findByPathAndMethod(path: string, method: HttpMethod): Promise<RouteConfig | null> {
+  async findByPathAndMethod(
+    path: string,
+    method: HttpMethod,
+  ): Promise<RouteConfig | null> {
     const route = await prisma.routeConfig.findFirst({
       where: {
         path,
@@ -152,18 +178,18 @@ export class RouteConfigRepository {
   /**
    * Map Prisma model to domain model
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private mapToModel(route: any): RouteConfig {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  private mapToModel(route: Prisma.RouteConfigGetPayload<{}>): RouteConfig {
     return {
       id: route.id,
       name: route.name,
       path: route.path,
       method: route.method,
-      upstream: route.upstream as RouteConfig['upstream'],
-      rateLimit: route.rateLimit as RouteConfig['rateLimit'],
+      upstream: route.upstream as RouteConfig["upstream"],
+      rateLimit: route.rateLimit as RouteConfig["rateLimit"],
       authRequired: route.authRequired,
       timeout: route.timeout,
-      retryPolicy: route.retryPolicy as RouteConfig['retryPolicy'],
+      retryPolicy: route.retryPolicy as RouteConfig["retryPolicy"],
       createdAt: route.createdAt,
       updatedAt: route.updatedAt,
       version: route.version,

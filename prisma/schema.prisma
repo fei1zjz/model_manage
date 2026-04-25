@@ -72,9 +72,32 @@ enum ClusterStatus {
   UNKNOWN
 }
 
+enum UserRole {
+  admin
+  user
+  viewer
+
+  @@map("user_role")
+}
+
 // ============================================
 // Models
 // ============================================
+
+// User - Platform user account
+model User {
+  id           String   @id @default(uuid())
+  email        String
+  username     String
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(user)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([email])
+  @@index([role])
+  @@map("users")
+}
 
 // Server - GPU server resource
 model Server {
@@ -86,8 +109,8 @@ model Server {
   gpuModel    String
   totalMemory BigInt
   status      ServerStatus @default(OFFLINE)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
   // Relations
   gpus        GPU[]
@@ -97,40 +120,42 @@ model Server {
   @@index([status])
   @@index([gpuModel])
   @@index([name])
+  @@map("gpu_servers")
 }
 
 // GPU - Graphics processor
 model GPU {
   id          String    @id @default(uuid())
-  serverId    String
+  serverId    String    @map("server_id")
   index       Int
   model       String
   memory      BigInt
-  usedMemory  BigInt    @default(0)
+  usedMemory  BigInt    @default(0) @map("used_memory")
   status      GPUStatus @default(IDLE)
-  allocatedTo String?   // References Allocation.id when allocated
+  allocatedTo String?   @map("allocated_to")
 
   // Relations
   server      Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
   allocations Allocation[]
 
   // Validation constraints
-  @@unique([serverId, index]) // Each GPU has unique index per server
+  @@unique([serverId, index])
   @@index([status])
   @@index([serverId])
+  @@map("gpu_gpus")
 }
 
 // Allocation - GPU resource allocation record
 model Allocation {
   id          String           @id @default(uuid())
-  userId      String
-  gpuId       String
-  serverId    String
-  requestedAt DateTime         @default(now())
-  allocatedAt DateTime?
-  expiresAt   DateTime?
+  userId      String           @map("user_id")
+  gpuId       String?          @map("gpu_id")
+  serverId    String?          @map("server_id")
+  requestedAt DateTime         @default(now()) @map("requested_at")
+  allocatedAt DateTime?        @map("allocated_at")
+  expiresAt   DateTime?        @map("expires_at")
   status      AllocationStatus @default(PENDING)
-  metadata    Json?            // Map<String, String>
+  metadata    Json?
 
   // Relations
   gpu         GPU    @relation(fields: [gpuId], references: [id], onDelete: SetNull)
@@ -141,18 +166,19 @@ model Allocation {
   @@index([status])
   @@index([gpuId])
   @@index([expiresAt])
+  @@map("gpu_allocations")
 }
 
 // Alert - System alert record
 model Alert {
   id              String        @id @default(uuid())
-  ruleId          String
+  ruleId          String        @map("rule_id")
   severity        AlertSeverity
   source          String
   message         String
-  triggeredAt     DateTime      @default(now())
-  acknowledgedAt  DateTime?
-  acknowledgedBy  String?
+  triggeredAt     DateTime      @default(now()) @map("triggered_at")
+  acknowledgedAt  DateTime?     @map("acknowledged_at")
+  acknowledgedBy  String?       @map("acknowledged_by")
   status          AlertStatus   @default(FIRING)
 
   // Validation constraints
@@ -160,45 +186,48 @@ model Alert {
   @@index([status])
   @@index([source])
   @@index([triggeredAt])
+  @@map("gpu_alerts")
 }
 
 // RouteConfig - API gateway route configuration
 model RouteConfig {
-  id           String   @id @default(uuid())
+  id           String      @id @default(uuid())
   name         String
   path         String
-  method       HttpMethod @default(ANY)
-  upstream     Json     // UpstreamConfig: targets, loadBalance, healthCheck
-  rateLimit    Json?    // RateLimitPolicy: requestsPerSecond, burst
-  authRequired Boolean  @default(false)
-  timeout      Int      @default(30000) // milliseconds
-  retryPolicy  Json?    // RetryPolicy: retries, backoff
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  version      Int      @default(1)
+  method       HttpMethod  @default(ANY)
+  upstream     Json
+  rateLimit    Json?       @map("rate_limit")
+  authRequired Boolean     @default(false) @map("auth_required")
+  timeout      Int         @default(30000)
+  retryPolicy  Json?       @map("retry_policy")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  version      Int         @default(1)
 
   // Validation constraints
   @@unique([name])
   @@index([path])
   @@index([method])
+  @@map("gpu_route_configs")
 }
 
 // Cluster - Kubernetes cluster
 model Cluster {
   id           String        @id @default(uuid())
   name         String
-  apiServer    String
-  kubeconfig   String        // Should be encrypted in production
+  apiServer    String        @map("api_server")
+  kubeconfig   String
   version      String?
-  nodeCount    Int           @default(0)
-  gpuNodeCount Int           @default(0)
+  nodeCount    Int           @default(0) @map("node_count")
+  gpuNodeCount Int           @default(0) @map("gpu_node_count")
   status       ClusterStatus @default(UNKNOWN)
-  labels       Json?         // Map<String, String>
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  labels       Json?
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
   // Validation constraints
   @@unique([name])
   @@index([status])
   @@index([apiServer])
+  @@map("gpu_clusters")
 }
